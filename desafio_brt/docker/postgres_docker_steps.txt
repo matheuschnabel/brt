@@ -1,0 +1,118 @@
+
+# Passo a Passo para Criar e Compartilhar o Banco de Dados PostgreSQL no Docker
+
+## Passo 1: Criando o Contêiner Docker com PostgreSQL
+
+1. Abra o terminal e execute o comando abaixo para criar o contêiner Docker com o PostgreSQL.
+   Isso cria o banco de dados `brt_db` com o usuário `admin` e senha `admin`.
+
+   ```bash
+   docker run --name postgres-container -e POSTGRES_PASSWORD=admin -e POSTGRES_USER=admin -e POSTGRES_DB=brt_db -p 5432:5432 -d postgres
+   ```
+
+   - **POSTGRES_PASSWORD**: Senha do usuário do banco (aqui, `admin`).
+   - **POSTGRES_USER**: Nome do usuário do banco (aqui, `admin`).
+   - **POSTGRES_DB**: Nome do banco de dados a ser criado (aqui, `brt_db`).
+   - A porta 5432 será mapeada do contêiner para sua máquina local, permitindo o acesso ao banco.
+
+## Passo 2: Permitindo Conexões Externas
+
+1. Acesse o contêiner Docker:
+
+   ```bash
+   docker exec -it postgres-container bash
+   ```
+
+2. Edite o arquivo de configuração `postgresql.conf` para permitir conexões externas. Execute o comando abaixo dentro do contêiner:
+
+   ```bash
+   nano /var/lib/postgresql/data/postgresql.conf.sample
+   ```
+
+   - Procure pela linha `listen_addresses` e altere para:
+
+     ```bash
+     listen_addresses = '*'
+     ```
+
+3. Edite o arquivo `pg_hba.conf` para permitir conexões de qualquer IP:
+
+   ```bash
+   nano /var/lib/postgresql/data/pg_hba.conf
+   ```
+
+   - Adicione a linha abaixo no final do arquivo para permitir acesso remoto:
+
+     ```bash
+     host    all             all             0.0.0.0/0               md5
+     ```
+
+4. Reinicie o contêiner para aplicar as configurações:
+
+   ```bash
+   docker restart postgres-container
+   ```
+
+## Passo 3: Conectar ao Banco de Dados Remotamente
+
+- Agora, compartilhe os seguintes dados com a pessoa do desafio:
+   - **IP da sua máquina** (use `ipconfig` no Windows ou `ifconfig` no Linux/Mac para descobrir o IP local).
+   - **Porta**: `5432` (a porta do PostgreSQL).
+   - **Credenciais**: 
+     - Banco de dados: `brt_db`
+     - Usuário: `admin`
+     - Senha: `admin`
+
+- A pessoa pode se conectar usando essas informações, por exemplo, com Python:
+
+   ```python
+   DB_PARAMS = {
+       "dbname": "brt_db",
+       "user": "admin",
+       "password": "admin",
+       "host": "<IP_da_sua_máquina>",  # Substitua pelo IP da sua máquina
+       "port": "5432"
+   }
+   ```
+
+## Passo 4: Usando ngrok (Opcional para Conexões Externas)
+
+Caso queira usar o ngrok para criar um túnel seguro para o banco de dados, siga os passos abaixo:
+
+1. Instale o [ngrok](https://ngrok.com/download) na sua máquina.
+
+2. Crie um túnel para a porta 5432 (do PostgreSQL):
+
+   ```bash
+   ngrok tcp 5432
+   ```
+
+   - O ngrok irá gerar um **URL público** para a conexão, algo como:
+
+     ```bash
+     tcp://0.tcp.ngrok.io:XXXXX
+     ```
+
+3. A pessoa pode se conectar usando o URL do ngrok, junto com as credenciais fornecidas.
+
+## Passo 5: Fazer Backup do Banco (Alternativa)
+
+Caso prefira enviar o banco de dados como backup, siga os passos abaixo para criar o arquivo de backup:
+
+1. No terminal, execute o comando para criar o backup:
+
+   ```bash
+   pg_dump -h localhost -U admin -W -F c -b -v -f "brt_db_backup.dump" brt_db
+   ```
+
+   - **brt_db_backup.dump** é o arquivo de backup do banco.
+
+2. Envie o arquivo `.dump` para a pessoa, que pode restaurá-lo com o comando:
+
+   ```bash
+   pg_restore -h localhost -U admin -d brt_db -v "brt_db_backup.dump"
+   ```
+
+---
+
+Agora, a pessoa do desafio pode acessar seu banco de dados diretamente ou restaurá-lo a partir do backup, dependendo da abordagem escolhida.
